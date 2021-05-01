@@ -4,8 +4,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import puppeteer from 'puppeteer';
-import handlebars, { template } from 'handlebars';
+import handlebars from 'handlebars';
 import { Readable } from 'stream';
+import PDFMerger from 'pdf-merger-js';
 const readFile = promisify(fs.readFile);
 
 const configPuppeter = {
@@ -23,19 +24,8 @@ const configPuppeter = {
 export class GeneratePdfService {
 	constructor() {}
 
-	async getTemplateHtml(template: string): Promise<string> {
-		try {
-			const invoicePath = path.resolve(`./templates/${template}.html`);
-			return await readFile(invoicePath, 'utf8');
-		} catch (err) {
-			return Promise.reject('Could not load html template');
-		}
-	}
-
 	async generatePdf(query: any): Promise<Buffer> {
-		let data = {};
-		let page;
-		let browser;
+		let data: any[] = [];
 		let template;
 
 		if ('template' in query) {
@@ -47,39 +37,135 @@ export class GeneratePdfService {
 		if ('data' in query) {
 			data = JSON.parse(query['data']);
 		}
-		data = { invoice: '123' };
+		data = [{ invoice: '123' }, { invoice: '124' }];
 
 		return await this.getTemplateHtml(template)
-			.then(async (res) => {
-				const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(res, { strict: true });
-				browser = await puppeteer.launch(configPuppeter);
-				// const browserVersion = await browser.version();
-				// console.log(`Started ${browserVersion}`);
+			.then(async (templateHtml) => {
+				return await this.generatePdfBuffers(templateHtml, data);
+			})
+			// .then(async (res) => {
+			// 	const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(res, { strict: true });
+			// 	browser = await puppeteer.launch(configPuppeter);
+			// 	// const browserVersion = await browser.version();
+			// 	// console.log(`Started ${browserVersion}`);
+			// 	const buffers: Buffer[] = [];
 
-				const result: string = templateHandlebars(data);
-				const html = result;				
-				page = await browser.newPage();
-				await page.setContent(html);
-				const buffer: Buffer = await page.pdf({
-					// format: 'A4',
-					// printBackground: true,
-					margin: {
-						left: '0px',
-						top: '0px',
-						right: '0px',
-						bottom: '0px',
-					},
-				});
-				await page.close();
+			// 	let result: string = templateHandlebars(data);
+			// 	let html = result;
+			// 	page = await browser.newPage();
+			// 	await page.setContent(html);
+			// 	buffers[0] = await page.pdf({
+			// 		// format: 'A4',
+			// 		// printBackground: true,
+			// 		margin: {
+			// 			left: '0px',
+			// 			top: '0px',
+			// 			right: '0px',
+			// 			bottom: '0px',
+			// 		},
+			// 	});
+			// 	await page.close();
 
+			// 	result = templateHandlebars({ invoice: '124' });
+			// 	html = result;
+			// 	page = await browser.newPage();
+			// 	await page.setContent(html);
+			// 	buffers[1] = await page.pdf({
+			// 		// format: 'A4',
+			// 		// printBackground: true,
+			// 		margin: {
+			// 			left: '0px',
+			// 			top: '0px',
+			// 			right: '0px',
+			// 			bottom: '0px',
+			// 		},
+			// 	});
+			// 	await page.close();
+			// 	await browser.close();
+			// 	return Promise.resolve(buffers);
+			// })
+			.then(async (buffers) => {
+				// let merger = new PDFMerger();
 
-				await browser.close();
-				return Promise.resolve(buffer);
+				// buffers.forEach((buffer) => {
+				// 	merger.add(buffer);
+				// });
+				return await this.mergePdfBuffers(buffers);
 			})
 			.catch((err) => {
 				console.error(err);
 				return Promise.reject(err);
 			});
+	}
+
+	async mergePdfBuffers(buffers: Buffer[]): Promise<Buffer> {
+		let merger = new PDFMerger();
+
+		buffers.forEach((buffer) => {
+			merger.add(buffer);
+		});
+		return await merger.saveAsBuffer();
+	}
+
+	async generatePdfBuffers(templateHtml: string, dataTemplates: any[]): Promise<Buffer[]> {
+		let page;
+		let browser;
+		const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(templateHtml, { strict: true });
+		browser = await puppeteer.launch(configPuppeter);
+		// const browserVersion = await browser.version();
+		// console.log(`Started ${browserVersion}`);
+		const buffers: Buffer[] = [];
+
+		// dataTemplates.forEach( async data => {
+		// 	let result: string = templateHandlebars(dataTemplates);
+			
+		// 	let html = result;
+		// 	page = await browser.newPage();
+		// 	await page.setContent(html);
+		// });
+
+		let result: string = templateHandlebars(dataTemplates[0]);
+		let html = result;
+		page = await browser.newPage();
+		await page.setContent(html);
+		buffers[0] = await page.pdf({
+			// format: 'A4',
+			// printBackground: true,
+			// margin: {
+			// 	left: '0px',
+			// 	top: '0px',
+			// 	right: '0px',
+			// 	bottom: '0px',
+			// },
+		});
+		await page.close();
+
+		result = templateHandlebars(dataTemplates[1]);
+		html = result;
+		page = await browser.newPage();
+		await page.setContent(html);
+		buffers[1] = await page.pdf({
+			// format: 'A4',
+			// printBackground: true,
+			// margin: {
+			// 	left: '0px',
+			// 	top: '0px',
+			// 	right: '0px',
+			// 	bottom: '0px',
+			// },
+		});
+		await page.close();
+		await browser.close();
+		return Promise.resolve(buffers);
+	}
+
+	async getTemplateHtml(template: string): Promise<string> {
+		try {
+			const invoicePath = path.resolve(`./templates/${template}.html`);
+			return await readFile(invoicePath, 'utf8');
+		} catch (err) {
+			return Promise.reject('Could not load html template');
+		}
 	}
 
 	getReadableStream(buffer: Buffer): Readable {

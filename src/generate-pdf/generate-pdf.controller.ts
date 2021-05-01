@@ -18,6 +18,7 @@ export class GeneratePdfController {
 	@Header('Expires', '0')
 	async generatePdf(@Res() res: Response, @Query() query: any): Promise<void> {
 		const buffer: Buffer = await this._generatePdfService.generatePdf(query);
+    console.log(buffer)
 		const stream = this._generatePdfService.getReadableStream(buffer);
 		const filename = this._generatePdfService.getFilename(query);
 
