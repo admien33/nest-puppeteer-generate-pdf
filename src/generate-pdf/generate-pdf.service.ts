@@ -70,14 +70,6 @@ export class GeneratePdfService {
 		// console.log(`Started ${browserVersion}`);
 		const buffers: Buffer[] = [];
 
-		// dataTemplates.forEach( async data => {
-		// 	let result: string = templateHandlebars(dataTemplates);
-
-		// 	let html = result;
-		// 	page = await browser.newPage();
-		// 	await page.setContent(html);
-		// });
-
 		let result: string = templateHandlebars(dataTemplates[0]);
 		let html = result;
 		page = await browser.newPage();
