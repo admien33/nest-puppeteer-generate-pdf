@@ -52,13 +52,13 @@ export class GeneratePdfService {
 			});
 	}
 
-	async mergePdfBuffers(buffers: Buffer[]): Promise<Buffer> {
-		let merger = new PDFMerger();
-
-		buffers.forEach((buffer) => {
-			merger.add(buffer);
-		});
-		return await merger.saveAsBuffer();
+	async getTemplateHtml(template: string): Promise<string> {
+		try {
+			const invoicePath = path.resolve(`./templates/${template}.html`);
+			return await readFile(invoicePath, 'utf8');
+		} catch (err) {
+			return Promise.reject('Could not load html template');
+		}
 	}
 
 	async generatePdfBuffers(templateHtml: string, dataTemplates: any[]): Promise<Buffer[]> {
@@ -105,13 +105,13 @@ export class GeneratePdfService {
 		return Promise.resolve(buffers);
 	}
 
-	async getTemplateHtml(template: string): Promise<string> {
-		try {
-			const invoicePath = path.resolve(`./templates/${template}.html`);
-			return await readFile(invoicePath, 'utf8');
-		} catch (err) {
-			return Promise.reject('Could not load html template');
-		}
+	async mergePdfBuffers(buffers: Buffer[]): Promise<Buffer> {
+		let merger = new PDFMerger();
+
+		buffers.forEach((buffer) => {
+			merger.add(buffer);
+		});
+		return await merger.saveAsBuffer();
 	}
 
 	getReadableStream(buffer: Buffer): Readable {
