@@ -43,53 +43,7 @@ export class GeneratePdfService {
 			.then(async (templateHtml) => {
 				return await this.generatePdfBuffers(templateHtml, data);
 			})
-			// .then(async (res) => {
-			// 	const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(res, { strict: true });
-			// 	browser = await puppeteer.launch(configPuppeter);
-			// 	// const browserVersion = await browser.version();
-			// 	// console.log(`Started ${browserVersion}`);
-			// 	const buffers: Buffer[] = [];
-
-			// 	let result: string = templateHandlebars(data);
-			// 	let html = result;
-			// 	page = await browser.newPage();
-			// 	await page.setContent(html);
-			// 	buffers[0] = await page.pdf({
-			// 		// format: 'A4',
-			// 		// printBackground: true,
-			// 		margin: {
-			// 			left: '0px',
-			// 			top: '0px',
-			// 			right: '0px',
-			// 			bottom: '0px',
-			// 		},
-			// 	});
-			// 	await page.close();
-
-			// 	result = templateHandlebars({ invoice: '124' });
-			// 	html = result;
-			// 	page = await browser.newPage();
-			// 	await page.setContent(html);
-			// 	buffers[1] = await page.pdf({
-			// 		// format: 'A4',
-			// 		// printBackground: true,
-			// 		margin: {
-			// 			left: '0px',
-			// 			top: '0px',
-			// 			right: '0px',
-			// 			bottom: '0px',
-			// 		},
-			// 	});
-			// 	await page.close();
-			// 	await browser.close();
-			// 	return Promise.resolve(buffers);
-			// })
 			.then(async (buffers) => {
-				// let merger = new PDFMerger();
-
-				// buffers.forEach((buffer) => {
-				// 	merger.add(buffer);
-				// });
 				return await this.mergePdfBuffers(buffers);
 			})
 			.catch((err) => {
@@ -118,7 +72,7 @@ export class GeneratePdfService {
 
 		// dataTemplates.forEach( async data => {
 		// 	let result: string = templateHandlebars(dataTemplates);
-			
+
 		// 	let html = result;
 		// 	page = await browser.newPage();
 		// 	await page.setContent(html);
