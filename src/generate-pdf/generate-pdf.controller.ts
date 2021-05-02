@@ -1,6 +1,7 @@
-import { Controller, Get, Res, Query, Header } from '@nestjs/common';
+import { Controller, Get, Res, Query, Header, Param, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiUseTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { CreateCatDto } from './dto/create-cat.dto';
 import { GeneratePdfService } from './generate-pdf.service';
 
 @ApiUseTags('generate-pdf')
@@ -18,7 +19,6 @@ export class GeneratePdfController {
 	@Header('Expires', '0')
 	async generatePdf(@Res() res: Response, @Query() query: any): Promise<void> {
 		const buffer: Buffer = await this._generatePdfService.generatePdf(query);
-    console.log(buffer)
 		const stream = this._generatePdfService.getReadableStream(buffer);
 		const filename = this._generatePdfService.getFilename(query);
 
