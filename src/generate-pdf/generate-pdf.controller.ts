@@ -1,7 +1,6 @@
-import { Controller, Get, Res, Query, Header, Param, Post, Body } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiUseTags } from '@nestjs/swagger';
+import { Controller, Get, Res, Query, Header } from '@nestjs/common';
+import { ApiImplicitQuery, ApiOperation, ApiResponse, ApiUseTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { CreateCatDto } from './dto/create-cat.dto';
 import { GeneratePdfService } from './generate-pdf.service';
 
 @ApiUseTags('generate-pdf')
@@ -13,6 +12,23 @@ export class GeneratePdfController {
 	@ApiResponse({ status: 200, description: 'Return generated pdf.' })
 	@ApiResponse({ status: 403, description: 'Forbidden.' })
 	@Get()
+	@ApiImplicitQuery({
+		name: 'template',
+		description: 'test with: invoice',
+		required: true,
+		type: String,
+	})
+	@ApiImplicitQuery({
+		name: 'data',
+		description: 'case template invoice: 123,124,125',
+		required: true,
+		type: String,
+	})
+	@ApiImplicitQuery({
+		name: 'filename',
+		required: false,
+		type: String,
+	})
 	@Header('Content-Type', 'application/pdf')
 	@Header('Cache-Control', 'no-cache, no-store, must-revalidate')
 	@Header('Pragma', 'no-cache')
