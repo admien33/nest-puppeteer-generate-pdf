@@ -22,23 +22,22 @@ const configPuppeter = {
 	],
 };
 
-
 @Injectable()
 export class GeneratePdfService {
 	constructor() {}
 
 	async generatePdf(query: any): Promise<Buffer> {
 		let data: any[] = [];
-		let template;
+		let dataRaw: any[] = [];
+		let template: string;
 
-		handlebars.registerHelper('reverseWord',reverseWord);
+		handlebars.registerHelper('reverseWord', reverseWord);
 
 		// handlebars.registerHelper('qrcode', function (qrCode: string) {
 		// 	QRCode.toDataURL(qrCode, { errorCorrectionLevel: 'H' }, function (err, url) {
 		// 		return url;
 		// 	});
 		// });
-		
 
 		if ('template' in query) {
 			template = query['template'];
@@ -48,15 +47,11 @@ export class GeneratePdfService {
 
 		if ('data' in query) {
 			if (template === 'invoice') {
-				let dataRaw = query['data'].split(',');
+				dataRaw = query['data'].split(',');
 				console.log('nb pages to generate : ' + dataRaw.length);
-				data = dataRaw.map((invoice: string) => {
-					return QRCode.toDataURL(invoice, { errorCorrectionLevel: 'H' }, function (err, url) {
-						// return url;
-						return { invoice: invoice, logo_data_uri: INVOICE_LOGO_DATAURI, qrcode_data_uri: url };
-					});
-					
-				});
+				// data = dataRaw.map((invoice: string) => {
+				// 	return { invoice: invoice, logo_data_uri: INVOICE_LOGO_DATAURI, qrcode_data_uri: INVOICE_LOGO_DATAURI };
+				// });
 			} else {
 				return Promise.reject('No match template with data on query');
 			}
@@ -65,14 +60,27 @@ export class GeneratePdfService {
 		}
 
 		try {
+			// let nowStart = moment();
+			// const generatedArrayData = await this.setDataTemplates(dataRaw);
+			// console.log(`generatedArrayData, time duration ms :  ${moment().diff(nowStart)}`);
+			// nowStart = moment();
 			// const templateHtml: string = await this.getTemplateHtml(template);
+			// console.log(`generatedArrayData, time duration ms :  ${moment().diff(nowStart)}`);
+			// nowStart = moment();
+			// const buffer: Buffer =  await this.getPdfBuffer(templateHtml, generatedArrayData);
+			// console.log(`generatedArrayData, time duration ms :  ${moment().diff(nowStart)}`);
 			// const arrayBuffer: Buffer[] = await this.generatePdfBuffers(templateHtml, data);
 			// return await this.mergePdf(arrayBuffer);
-
-			return await this.getTemplateHtml(template)
+			let generatedArrayData: any[] = []
+			return await this.setDataTemplates(dataRaw)
+				.then(async (dataTemplates) => {
+					generatedArrayData = dataTemplates;
+					// console.log('dataTemplates : ' + JSON.stringify(dataTemplates));
+					return await this.getTemplateHtml(template);
+				})
 				.then(async (templateHtml) => {
 					// return await this.generatePdfBuffers(templateHtml, data);
-					return await this.getPdfBuffer(templateHtml, data);
+					return await this.getPdfBuffer(templateHtml, generatedArrayData);
 				})
 				// .then(async (arrayBuffer) => {
 				// 	// return await this.mergePdf(arrayBuffer);
@@ -87,6 +95,29 @@ export class GeneratePdfService {
 		}
 	}
 
+	async setDataTemplates(dataTemplates: any[]): Promise<any[]> {
+		try {
+			const arrayData: any[] = [];
+
+			let promiseArray: Promise<any>[] = dataTemplates.map(async (dataTemplate, index) => {
+				const generateQR = await QRCode.toDataURL(dataTemplate);
+				return Promise.resolve(
+					(arrayData[index] = {
+						invoice: dataTemplate,
+						logo_data_uri: INVOICE_LOGO_DATAURI,
+						qrcode_data_uri: generateQR,
+					})
+				);
+			});
+
+			return await Promise.all(promiseArray)
+				.then((arrayData) => Promise.resolve(arrayData))
+				.catch((err) => Promise.reject(err));
+		} catch (err) {
+			return Promise.reject('Could not generate data array, err :' + err);
+		}
+	}
+
 	async getTemplateHtml(template: string): Promise<string> {
 		try {
 			const templatePath = path.resolve(`./src/templates/${template}/${template}.html`);
@@ -96,10 +127,7 @@ export class GeneratePdfService {
 		}
 	}
 
-	async getPdfBuffer(
-		templateHtml: string, 
-		dataTemplates: any[],
-	): Promise<Buffer> {
+	async getPdfBuffer(templateHtml: string, dataTemplates: any[]): Promise<Buffer> {
 		try {
 			const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(templateHtml, {
 				strict: true,
@@ -109,13 +137,13 @@ export class GeneratePdfService {
 			let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
 			const arrayBuffer: Buffer[] = [];
 
-			let result: string = templateHandlebars({dataArray: dataTemplates});
+			let result: string = templateHandlebars({ dataArray: dataTemplates });
 			let html = result;
 			let page: puppeteer.Page = await browser.newPage();
 			page.setDefaultNavigationTimeout(0);
 			await page.setContent(html);
 			let buffer: Buffer = await page.pdf({
-				preferCSSPageSize: true
+				preferCSSPageSize: true,
 			});
 			await page.close();
 			return Promise.resolve(buffer);
