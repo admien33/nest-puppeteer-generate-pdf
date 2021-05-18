@@ -71,7 +71,7 @@ export class GeneratePdfService {
 			// console.log(`generatedArrayData, time duration ms :  ${moment().diff(nowStart)}`);
 			// const arrayBuffer: Buffer[] = await this.generatePdfBuffers(templateHtml, data);
 			// return await this.mergePdf(arrayBuffer);
-			let generatedArrayData: any[] = []
+			let generatedArrayData: any[] = [];
 			return await this.setDataTemplates(dataRaw)
 				.then(async (dataTemplates) => {
 					generatedArrayData = dataTemplates;
