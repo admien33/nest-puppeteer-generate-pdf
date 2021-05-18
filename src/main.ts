@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import compression from 'compression';
 import { ApplicationModule } from './app.module';
+import express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(ApplicationModule, { cors: true });
@@ -18,6 +19,7 @@ async function bootstrap() {
   
   SwaggerModule.setup('api', app, document);
 
+  app.use(express.static('src/templates')); 
   app.use(helmet());
   app.use(compression());
 

@@ -1,7 +1,6 @@
-import { Controller, Get, Res, Query, Header, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Res, Query, Header } from '@nestjs/common';
 import { ApiImplicitQuery, ApiOperation, ApiResponse, ApiUseTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { CreateCatDto } from './dto/create-cat.dto';
 import { GeneratePdfService } from './generate-pdf.service';
 import moment from 'moment';
 
@@ -9,21 +8,6 @@ import moment from 'moment';
 @Controller('generate-pdf')
 export class GeneratePdfController {
 	constructor(private readonly _generatePdfService: GeneratePdfService) {}
-
-	@Get(':id')
-	findOne(@Param('id') id: string): string {
-		return `This action returns a #${id} cat`;
-	}
-
-	@Post()
-	async create(@Body() createCatDto: CreateCatDto) {
-		return 'This action adds a new cat';
-	}
-
-	// @Get("/list-templates")
-	// findAll(@Query() query: ListAllEntities) {
-	// 	return `This action returns all cats (limit: ${query.limit} items)`;
-	// }
 
 	@ApiOperation({ title: 'Get generated pdf' })
 	@ApiResponse({ status: 200, description: 'Return generated pdf.' })

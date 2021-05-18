@@ -6,18 +6,19 @@
 
 		<style>
 			body {
-				background: rgb(255, 255, 255);
+				background: rgb(204, 204, 204);
 			}
 			page {
+				background: white;
 				display: block;
-				margin: 0;
-				/* border: 1px solid black; */
+				margin: 0 auto;
+				margin-bottom: 0.5cm;
+				/* box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5); */
 			}
 			page[size='A4'] {
 				width: 21cm;
-				height: 27cm; /* 29.7cm; */
+				height: 29.7cm;
 			}
-			/*
 			page[size='A4'][layout='landscape'] {
 				width: 29.7cm;
 				height: 21cm;
@@ -37,16 +38,15 @@
 			page[size='A5'][layout='landscape'] {
 				width: 21cm;
 				height: 14.8cm;
-			}*/
+			}
 			@media print {
 				body,
 				page {
 					margin: 0;
 					box-shadow: 0;
-					page-break-after: always;
 				}
 			}
-			/* .invoice-box {
+			.invoice-box {
 				max-width: 800px;
 				margin: auto;
 				padding: 30px;
@@ -108,9 +108,9 @@
 			.invoice-box table tr.total td:nth-child(2) {
 				border-top: 2px solid #eee;
 				font-weight: bold;
-			} */
+			}
 
-			/* @media only screen and (max-width: 600px) {
+			@media only screen and (max-width: 600px) {
 				.invoice-box table tr.top table td {
 					width: 100%;
 					display: block;
@@ -122,9 +122,10 @@
 					display: block;
 					text-align: center;
 				}
-			} */
+			}
+
 			/** RTL **/
-			/* .rtl {
+			.rtl {
 				direction: rtl;
 				font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
 			}
@@ -135,12 +136,11 @@
 
 			.rtl table tr td:nth-child(2) {
 				text-align: left;
-			} */
+			}
 		</style>
 	</head>
 
 	<body>
-		{{#each dataArray}}
 		<page size="A4">
 			<div class="invoice-box">
 				<table cellpadding="0" cellspacing="0">
@@ -149,7 +149,7 @@
 							<table>
 								<tr>
 									<td class="title">
-										<img src="{{logo_data_uri}}" alt="Company logo" style="width: 100%; max-width: 300px" />
+										<img src="{{src}}" alt="Company logo" style="width: 100%; max-width: 300px" />
 									</td>
 
 									<td>
@@ -224,10 +224,92 @@
 						<td>Total: $385.00</td>
 					</tr>
 				</table>
-				<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 300px" />
-				<!-- <img src="{{{qrcode invoice}}}" alt="qrCode" style="width: 100%; max-width: 300px" />				 -->
 			</div>
 		</page>
-		{{/each}}
+		<page size="A4">
+			<div class="invoice-box">
+				<table cellpadding="0" cellspacing="0">
+					<tr class="top">
+						<td colspan="2">
+							<table>
+								<tr>
+									<td class="title">
+										<img src="{{src}}" alt="Company logo" style="width: 100%; max-width: 300px" />
+									</td>
+
+									<td>
+										Invoice #: {{reverseWord invoice}}<br />
+										Created: January 1, 2015<br />
+										Due: February 1, 2015
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+
+					<tr class="information">
+						<td colspan="2">
+							<table>
+								<tr>
+									<td>
+										Sparksuite, Inc.<br />
+										12345 Sunny Road<br />
+										Sunnyville, CA 12345
+									</td>
+
+									<td>
+										Acme Corp.<br />
+										John Doe<br />
+										john@example.com
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+
+					<tr class="heading">
+						<td>Payment Method</td>
+
+						<td>Check #</td>
+					</tr>
+
+					<tr class="details">
+						<td>Check</td>
+
+						<td>1000</td>
+					</tr>
+
+					<tr class="heading">
+						<td>Item</td>
+
+						<td>Price</td>
+					</tr>
+
+					<tr class="item">
+						<td>Website design</td>
+
+						<td>$300.00</td>
+					</tr>
+
+					<tr class="item">
+						<td>Hosting (3 months)</td>
+
+						<td>$75.00</td>
+					</tr>
+
+					<tr class="item last">
+						<td>Domain name (1 year)</td>
+
+						<td>$10.00</td>
+					</tr>
+
+					<tr class="total">
+						<td></td>
+
+						<td>Total: $385.00</td>
+					</tr>
+				</table>
+			</div>
+		</page>
 	</body>
 </html>

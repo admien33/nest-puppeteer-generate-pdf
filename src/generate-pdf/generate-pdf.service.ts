@@ -7,7 +7,8 @@ import puppeteer from 'puppeteer';
 import handlebars from 'handlebars';
 import { Readable } from 'stream';
 import PDFMerger from 'pdf-merger-js';
-import rimraf from 'rimraf';
+import QRCode from 'qrcode';
+import { INVOICE_LOGO_DATAURI, reverseWord } from './generate-pdf.constant';
 const readFile = promisify(fs.readFile);
 
 const configPuppeter = {
@@ -21,6 +22,7 @@ const configPuppeter = {
 	],
 };
 
+
 @Injectable()
 export class GeneratePdfService {
 	constructor() {}
@@ -28,9 +30,15 @@ export class GeneratePdfService {
 	async generatePdf(query: any): Promise<Buffer> {
 		let data: any[] = [];
 		let template;
-		let folderName: string = `temp-${Date.now()}`;
-		fs.mkdirSync(`./${folderName}`);
-		console.log('folderName : ' + folderName)
+
+		handlebars.registerHelper('reverseWord',reverseWord);
+
+		// handlebars.registerHelper('qrcode', function (qrCode: string) {
+		// 	QRCode.toDataURL(qrCode, { errorCorrectionLevel: 'H' }, function (err, url) {
+		// 		return url;
+		// 	});
+		// });
+		
 
 		if ('template' in query) {
 			template = query['template'];
@@ -41,9 +49,13 @@ export class GeneratePdfService {
 		if ('data' in query) {
 			if (template === 'invoice') {
 				let dataRaw = query['data'].split(',');
-				console.log('nb pages to generate : ' +dataRaw.length);
+				console.log('nb pages to generate : ' + dataRaw.length);
 				data = dataRaw.map((invoice: string) => {
-					return { invoice: invoice };
+					return QRCode.toDataURL(invoice, { errorCorrectionLevel: 'H' }, function (err, url) {
+						// return url;
+						return { invoice: invoice, logo_data_uri: INVOICE_LOGO_DATAURI, qrcode_data_uri: url };
+					});
+					
 				});
 			} else {
 				return Promise.reject('No match template with data on query');
@@ -53,17 +65,20 @@ export class GeneratePdfService {
 		}
 
 		try {
+			// const templateHtml: string = await this.getTemplateHtml(template);
+			// const arrayBuffer: Buffer[] = await this.generatePdfBuffers(templateHtml, data);
+			// return await this.mergePdf(arrayBuffer);
+
 			return await this.getTemplateHtml(template)
 				.then(async (templateHtml) => {
-					return await this.generatePdfFiles(templateHtml, data, folderName);
+					// return await this.generatePdfBuffers(templateHtml, data);
+					return await this.getPdfBuffer(templateHtml, data);
 				})
-				.then(async (arrayFilename) => {
-					const buffer: Buffer = await this.mergePdf(arrayFilename);
-					rimraf.sync(`./${folderName}`);
-					return buffer;
-				})
+				// .then(async (arrayBuffer) => {
+				// 	// return await this.mergePdf(arrayBuffer);
+				// 	return arrayBuffer[0];
+				// })
 				.catch((err) => {
-					rimraf.sync(`./${folderName}`);
 					console.error(err);
 					return Promise.reject(err);
 				});
@@ -74,69 +89,95 @@ export class GeneratePdfService {
 
 	async getTemplateHtml(template: string): Promise<string> {
 		try {
-			const templatePath = path.resolve(`./templates/${template}.html`);
+			const templatePath = path.resolve(`./src/templates/${template}/${template}.html`);
 			return await readFile(templatePath, 'utf8');
 		} catch (err) {
-			return Promise.reject('Could not load html template');
+			return Promise.reject('Could not load html template, err : ' + err);
 		}
 	}
 
-	async generatePdfFiles(templateHtml: string, dataTemplates: any[], folderName: string): Promise<string[]> {
+	async getPdfBuffer(
+		templateHtml: string, 
+		dataTemplates: any[],
+	): Promise<Buffer> {
 		try {
-			const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(templateHtml, { strict: true });
+			const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(templateHtml, {
+				strict: true,
+				knownHelpersOnly: false,
+				noEscape: true,
+			});
 			let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
-			const arrayFilename: string[] = [];
+			const arrayBuffer: Buffer[] = [];
 
-			let promiseArrayFilename: Promise<string>[] = dataTemplates.map(async (dataTemplate, index) => {
-				return await this.getConcurrencyPdfPage(
-					dataTemplate,
-					index,
-					arrayFilename,
-					templateHandlebars,
-					browser,
-					folderName
-				);
+			let result: string = templateHandlebars({dataArray: dataTemplates});
+			let html = result;
+			let page: puppeteer.Page = await browser.newPage();
+			page.setDefaultNavigationTimeout(0);
+			await page.setContent(html);
+			let buffer: Buffer = await page.pdf({
+				preferCSSPageSize: true
+			});
+			await page.close();
+			return Promise.resolve(buffer);
+		} catch (err) {
+			return Promise.reject('Could not generate pdf buffer puppeter, err : ' + err);
+		}
+	}
+
+	async generatePdfBuffers(templateHtml: string, dataTemplates: any[]): Promise<Buffer[]> {
+		try {
+			const templateHandlebars: HandlebarsTemplateDelegate<any> = handlebars.compile(templateHtml, {
+				strict: true,
+				knownHelpersOnly: false,
+				noEscape: true,
+			});
+			let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
+			const arrayBuffer: Buffer[] = [];
+
+			let promiseArrayBuffer: Promise<Buffer>[] = dataTemplates.map(async (dataTemplate, index) => {
+				return await this.getConcurrencyPdfBuffer(dataTemplate, index, arrayBuffer, templateHandlebars, browser);
 			});
 
-			return await Promise.all(promiseArrayFilename)
-				.then((arrayFilename) => Promise.resolve(arrayFilename))
+			return await Promise.all(promiseArrayBuffer)
+				.then((arrayBuffer) => Promise.resolve(arrayBuffer))
 				.catch((err) => Promise.reject(err));
 		} catch (err) {
-			return Promise.reject('Could not generate pdf array filename, err :' + err);
+			return Promise.reject('Could not generate pdf array buffer, err :' + err);
 		}
 	}
 
-	async getConcurrencyPdfPage(
+	async getConcurrencyPdfBuffer(
 		dataTemplate: any,
 		index: number,
-		arrayFilename: string[],
+		arrayBuffer: Buffer[],
 		templateHandlebars: HandlebarsTemplateDelegate<any>,
-		browser: puppeteer.Browser,
-		folderName: string
+		browser: puppeteer.Browser
 	) {
 		try {
 			let result: string = templateHandlebars(dataTemplate);
 			let html = result;
-			let filename: string = `pdf${index}.pdf`;
-			let path: string = `${folderName}/${filename}`; 
 			let page: puppeteer.Page = await browser.newPage();
-			await page.setDefaultNavigationTimeout(0); 
+			page.setDefaultNavigationTimeout(0);
 			await page.setContent(html);
-			// let buffer: Buffer = await page.pdf({});
-			await page.pdf({ path: `${path}` });
+			let buffer: Buffer = await page.pdf({
+				preferCSSPageSize: true,
+				// scale: 0.95,
+				// headerTemplate: '<div/>',
+				// footerTemplate:
+				// '<div style="text-align: right;width: 297mm;font-size: 8px;"><span style="margin-right: 1cm"><span class="pageNumber"></span> of <span class="totalPages"></span></span></div>',
+			});
 			await page.close();
-			// return Promise.resolve((buffers[index] = buffer));
-			return Promise.resolve((arrayFilename[index] = path));
+			return Promise.resolve((arrayBuffer[index] = buffer));
 		} catch (err) {
-			return Promise.reject('Could not generate pdf puppeter, err : ' + err);
+			return Promise.reject('Could not generate pdf buffer puppeter, err : ' + err);
 		}
 	}
 
-	async mergePdf(arrayFilename: string[]): Promise<Buffer> {
+	async mergePdf(arrayBuffer: Buffer[]): Promise<Buffer> {
 		try {
 			let merger = new PDFMerger();
-			arrayFilename.forEach((filename) => {
-				merger.add(filename);
+			arrayBuffer.forEach((buffer) => {
+				merger.add(buffer);
 			});
 			return await merger.saveAsBuffer();
 		} catch (err) {
