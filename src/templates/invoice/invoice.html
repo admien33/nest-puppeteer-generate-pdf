@@ -89,6 +89,16 @@
 			.invoice-box table tr.details td {
 				padding-bottom: 20px;
 			}
+
+			.rotateimg90 {
+				transform: rotate(90deg);
+			}
+			.rotateimg180 {
+				transform: rotate(180deg);
+			}
+			.rotateimg270 {
+				transform: rotate(270deg);
+			}
 		</style>
 	</head>
 
@@ -177,7 +187,26 @@
 						<td>Total: $385.00</td>
 					</tr>
 				</table>
-				<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 300px" />
+				<table>
+					<tr>
+						<td>
+							<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 100px" />
+						</td>
+
+						<td>
+							<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 100px" class="rotateimg90" />
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 100px" class="rotateimg180" />
+						</td>
+
+						<td>
+							<img src="{{qrcode_data_uri}}" alt="qrCode" style="width: 100%; max-width: 100px" class="rotateimg270" />
+						</td>
+					</tr>
+				</table>
 			</div>
 		</page>
 		{{/each}}
