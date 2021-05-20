@@ -50,23 +50,23 @@ export class GeneratePdfService {
 		}
 
 		try {
-			const generatedArrayData = await this.setInvoiceDataTemplates(dataRaw);
-			const templateHtml: string = await this.getTemplateHtml(template);
-			return  await this.getPdfBuffer(templateHtml, generatedArrayData);
-			
-			// let generatedArrayData: any[] = [];
-			// return await this.setDataTemplates(dataRaw)
-			// 	.then(async (dataTemplates) => {
-			// 		generatedArrayData = dataTemplates;
-			// 		return await this.getTemplateHtml(template);
-			// 	})
-			// 	.then(async (templateHtml) => {
-			// 		return await this.getPdfBuffer(templateHtml, generatedArrayData);
-			// 	})
-			// 	.catch((err) => {
-			// 		console.error(err);
-			// 		return Promise.reject(err);
-			// 	});
+			// const generatedArrayData = await this.setInvoiceDataTemplates(dataRaw);
+			// const templateHtml = await this.getTemplateHtml(template);
+			// return  await this.getPdfBuffer(templateHtml, generatedArrayData);
+
+			let generatedArrayData: any[] = [];
+			return await this.setInvoiceDataTemplates(dataRaw)
+				.then(async (dataTemplates) => {
+					generatedArrayData = dataTemplates;
+					return await this.getTemplateHtml(template);
+				})
+				.then(async (templateHtml) => {
+					return await this.getPdfBuffer(templateHtml, generatedArrayData);
+				})
+				.catch((err) => {
+					console.error(err);
+					return Promise.reject(err);
+				});
 		} catch (err) {
 			return Promise.reject('Could not generate pdf, err :' + err);
 		}
@@ -112,10 +112,7 @@ export class GeneratePdfService {
 				noEscape: true,
 			});
 			let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
-			const arrayBuffer: Buffer[] = [];
-
-			let result: string = templateHandlebars({ dataArray: dataTemplates });
-			let html = result;
+			let html: string = templateHandlebars({ dataArray: dataTemplates });
 			let page: puppeteer.Page = await browser.newPage();
 			page.setDefaultNavigationTimeout(0);
 			await page.setContent(html);
