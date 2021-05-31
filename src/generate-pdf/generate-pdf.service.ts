@@ -3,12 +3,12 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
-import puppeteer from 'puppeteer';
+// import puppeteer from 'puppeteer';
 import handlebars from 'handlebars';
 import { Readable } from 'stream';
 // import PDFMerger from 'pdf-merger-js';
 import QRCode from 'qrcode';
-import { INVOICE_LOGO_DATAURI, reverseWord } from './generate-pdf.constant';
+import { INVOICE_LOGO_DATAURI, PATCH_BARCODE_DATAURI, reverseWord } from './generate-pdf.constant';
 const readFile = promisify(fs.readFile);
 
 const configPuppeter = {
@@ -21,6 +21,8 @@ const configPuppeter = {
 		'--disable-dev-shm-usage',
 	],
 };
+
+const codeErpProject = '780';
 
 @Injectable()
 export class GeneratePdfService {
@@ -42,6 +44,9 @@ export class GeneratePdfService {
 			if (template === 'invoice') {
 				dataRaw = query['data'].split(',');
 				console.log('nb pages to generate : ' + dataRaw.length);
+			} else if (template === 'patch') {
+				dataRaw = query['data'].split(',');
+				console.log('nb pages to generate : ' + dataRaw.length);
 			} else {
 				return Promise.reject('No match template with data on query');
 			}
@@ -55,7 +60,7 @@ export class GeneratePdfService {
 			// return  await this.getPdfBuffer(templateHtml, generatedArrayData);
 
 			let generatedArrayData: any[] = [];
-			return await this.setInvoiceDataTemplates(dataRaw)
+			return await this.setDataTemplates(template, dataRaw)
 				.then(async (dataTemplates) => {
 					generatedArrayData = dataTemplates;
 					return await this.getTemplateHtml(template);
@@ -70,6 +75,21 @@ export class GeneratePdfService {
 		} catch (err) {
 			return Promise.reject('Could not generate pdf, err :' + err);
 		}
+	}
+
+	async setDataTemplates(template: string, dataTemplates: any[]): Promise<any[]> {
+		try {
+
+			switch(template) {
+				case 'invoice':
+					return this.setInvoiceDataTemplates(dataTemplates);
+				case 'patch':
+					return this.setPatchDataTemplates(dataTemplates);
+			}			
+		} catch (err) {
+			return Promise.reject('Could not generate data templates array, err :' + err);
+		}
+		return Promise.reject('Could not generate data templates array');
 	}
 
 	async setInvoiceDataTemplates(dataTemplates: any[]): Promise<any[]> {
@@ -95,6 +115,33 @@ export class GeneratePdfService {
 		}
 	}
 
+	async setPatchDataTemplates(dataTemplates: any[]): Promise<any[]> {
+		try {
+			const arrayData: any[] = [];
+
+			let promiseArray: Promise<any>[] = dataTemplates.map(async (dossierNumber, index) => {
+				const dossierReference = `${codeErpProject}-${dossierNumber}-01-A`;
+				const generateQR = await QRCode.toDataURL(dossierReference);
+				return Promise.resolve(
+					(arrayData[index] = {
+						dossierReference,
+						logo_data_uri: INVOICE_LOGO_DATAURI,
+						qrcode_data_uri: generateQR,
+						barcode_data_uri: PATCH_BARCODE_DATAURI,
+						planningDate: '31/05/2021',
+						identifierLot: 'Lot 1',
+					})
+				);
+			});
+
+			return await Promise.all(promiseArray)
+				.then((arrayData) => Promise.resolve(arrayData))
+				.catch((err) => Promise.reject(err));
+		} catch (err) {
+			return Promise.reject('Could not generate patch data templates array, err :' + err);
+		}
+	}
+
 	async getTemplateHtml(template: string): Promise<string> {
 		try {
 			const templatePath = path.resolve(`./src/templates/${template}/${template}.html`);
@@ -111,16 +158,18 @@ export class GeneratePdfService {
 				knownHelpersOnly: false,
 				noEscape: true,
 			});
-			let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
+			// let browser: puppeteer.Browser = await puppeteer.launch(configPuppeter);
 			let html: string = templateHandlebars({ dataArray: dataTemplates });
-			let page: puppeteer.Page = await browser.newPage();
-			page.setDefaultNavigationTimeout(0);
-			await page.setContent(html);
-			let buffer: Buffer = await page.pdf({
-				preferCSSPageSize: true,
-			});
-			await page.close();
-			return Promise.resolve(buffer);
+			const buff = Buffer.from(html, "utf-8");
+			// let page: puppeteer.Page = await browser.newPage();
+			// page.setDefaultNavigationTimeout(0);
+			// await page.setContent(html);
+			// let buffer: Buffer = await page.pdf({
+			// 	preferCSSPageSize: true,
+			// });
+			// await page.close();
+			// return Promise.resolve(buffer);
+			return Promise.resolve(buff);
 		} catch (err) {
 			return Promise.reject('Could not generate pdf buffer puppeteer, err : ' + err);
 		}

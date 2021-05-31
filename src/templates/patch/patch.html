@@ -1,0 +1,142 @@
+<html lang="fr">
+	<head>
+		<meta charset="UTF-8" />
+		<title></title>
+		<style>
+			/* html,
+			body {
+				height: 100%;
+				margin: 0;
+			} */
+
+			body {
+				background: rgb(255, 255, 255);
+			}
+			page {
+				display: block;
+				margin: 0;
+				border: 1px solid black;
+			}
+			page[size='A4'] {
+				width: 21cm;
+				height: 29.7cm; /* 29.7cm; */
+			}
+
+			@media print {
+				body,
+				page {
+					margin: 0;
+					box-shadow: 0;
+					page-break-after: always;
+				}
+			}
+			.container {
+				/* width: 21cm; */
+				/* height: 29.7cm; */
+                width: 100%;
+				height: 100%;
+				padding-top: 2.5cm;
+				padding-left: 2cm;
+				padding-right: 2cm;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+			}
+			.top-container {
+				width: 100%;
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.middle-container {
+				width: 100%;
+				height: 100%;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.bottom-container {
+				margin-top: auto;
+				width: 100%;
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.qr-code {
+				height: 3cm;
+				width: 3cm;
+				max-height: 3cm;
+				max-width: 3cm;
+			}
+			.bar-code {
+				height: 1.8cm;
+				width: 4.5cm;
+				max-height: 1.8cm;
+				max-width: 4.5cm;
+			}
+			.rotate-less-90 {
+				transform: rotate(-90deg);
+			}
+			.rotate-more-90 {
+				transform: rotate(90deg);
+			}
+			.rotate-less-180 {
+				transform: rotate(-180deg);
+			}
+			.bold {
+				font-weight: bold;
+			}
+			.middle-div {
+				width: 8.5cm;
+				text-align: center;
+			}
+			.dossier-reference {
+				font-size: 47px;
+				margin-top: 100%;
+			}
+			.logo,
+			.planning-date,
+			.identifier {
+				margin-top: 2cm;
+			}
+			.planning-date,
+			.identifier {
+				text-align: left;
+			}
+		</style>
+	</head>
+
+	<body>
+		{{#each dataArray}}
+		<page size="A4">
+			<div class="container">
+				<div class="top-container">
+					<img class="qr-code" src="{{qrcode_data_uri}}" />
+					<img class="bar-code" src="{{barcode_data_uri}}" />
+					<img class="qr-code rotate-less-90" src="{{qrcode_data_uri}}" />
+				</div>
+
+				<div class="middle-container">
+					<img class="bar-code rotate-less-90" src="{{barcode_data_uri}}" />
+					<div class="middle-div">
+						<div class="dossier-reference bold">{{dossierReference}}</div>
+						<div class="logo"><img src="{{logo_data_uri}}" /></div>
+						<div class="planning-date">Date enlèvement prévue: {{planningDate}}</div>
+						<div class="identifier">LOT: {{identifierLot}}</div>
+					</div>
+					<img class="bar-code rotate-more-90" src="{{barcode_data_uri}}" />
+				</div>
+
+				<div class="bottom-container">
+					<img class="qr-code rotate-less-180" src="{{qrcode_data_uri}}" />
+					<img class="bar-code rotate-less-180" src="{{barcode_data_uri}}" />
+					<img class="qr-code rotate-more-90" src="{{qrcode_data_uri}}" />
+				</div>
+			</div>
+		</page>
+		{{/each}}
+	</body>
+</html>
